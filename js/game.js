@@ -1,7 +1,7 @@
 const GameState = {
   START: 'START',
   PLAYING: 'PLAYING',
-  GAME_OVER: 'JK:Just KIdding! You cannot break it.'
+  GAME_OVER: 'GAME_OVER'
 };
 
 class ParticleSystem {
@@ -125,6 +125,7 @@ class Game {
     this.ball = new Ball(this.width, this.height);
     this.brickGrid = new BrickGrid(this.width);
 
+    this.handleTiredInteraction = this.handleTiredInteraction.bind(this);
     this.initControls();
     this.loop = this.loop.bind(this);
   }
@@ -160,6 +161,23 @@ class Game {
     this.shakeDuration = duration;
   }
 
+  /**
+   * Comedic interaction handler when the ball becomes tired shortly after a brick complaint.
+   */
+  handleTiredInteraction() {
+    const timeSinceHit = this.brickGrid.getTimeSinceLastComplaint();
+    // If a complaint happened in the last 1.8 seconds (1800ms)
+    if (timeSinceHit < 1800) {
+      if (Math.random() > 0.5) {
+        return { ballReply: "Don't blame me, bro. 🥱" };
+      } else {
+        this.brickGrid.triggerComedyResponse("FINALLY.");
+        return { ballReply: "Bro... can we take a break?" };
+      }
+    }
+    return null;
+  }
+
   update() {
     this.particles.update();
     this.dialogue.update();
@@ -173,7 +191,8 @@ class Game {
     }
 
     this.paddle.update();
-    this.ball.update();
+    this.ball.update(this.handleTiredInteraction);
+    this.brickGrid.update();
 
     const wallHit = CollisionSystem.checkWallCollisions(
       this.ball,
@@ -181,7 +200,7 @@ class Game {
       this.height
     );
 
-    // Ball dropped below paddle (Miss / Life Loss event)
+    // Ball dropped below paddle
     if (wallHit.hitBottom) {
       this.lives--;
       this.dialogue.showMissMessage();
@@ -206,16 +225,12 @@ class Game {
       this.score += hitData.points;
       this.totalDamage += hitData.damageDealt;
 
-      // Increment progress (hard capped at 99%)
       this.progress += 0.2;
       if (this.progress >= 99) {
         this.progress = 99;
       }
 
-      // Dialogue hook on hit
       this.dialogue.showHitMessage();
-
-      // Polish
       this.triggerShake(3, 5);
       this.particles.spawn(hitData.x, hitData.y, hitData.color, 12);
       this.sound.playBrickHit();
@@ -226,14 +241,12 @@ class Game {
     this.ctx.save();
     this.ctx.clearRect(0, 0, this.width, this.height);
 
-    // Screen Shake
     if (this.shakeDuration > 0) {
       const offsetX = (Math.random() - 0.5) * this.shakeIntensity;
       const offsetY = (Math.random() - 0.5) * this.shakeIntensity;
       this.ctx.translate(offsetX, offsetY);
     }
 
-    // World Elements
     this.ctx.fillStyle = '#0b1120';
     this.ctx.fillRect(0, 0, this.width, this.height);
 
@@ -244,7 +257,6 @@ class Game {
 
     this.ctx.restore();
 
-    // HUD and Dynamic Dialogue Area
     this.ui.renderHUD(
       this.ctx,
       this.score,

@@ -13,11 +13,33 @@ class BrickGrid {
 
     this.rowColors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4'];
     this.bricks = [];
+
+    // Brick Complaints Pool
+    this.complaintsPool = [
+      "Can you stop?",
+      "I was literally minding my business.",
+      "This is workplace harassment.",
+      "Bro, why me?",
+      "LEAVE ME ALONE 😭",
+      "I have a family!",
+      "Again?!",
+      "That actually hurt.",
+      "Why are you targeting me?",
+      "Please respect the bricks."
+    ];
+
+    this.activeBubbles = [];
+    this.maxConcurrentBubbles = 3;
+    this.lastComplaintTime = 0;
+
     this.init();
   }
 
   init() {
     this.bricks = [];
+    this.activeBubbles = [];
+    this.lastComplaintTime = 0;
+
     for (let r = 0; r < this.rowCount; r++) {
       this.bricks[r] = [];
       for (let c = 0; c < this.columnCount; c++) {
@@ -31,7 +53,9 @@ class BrickGrid {
           height: this.brickHeight,
           health: 100,
           color: this.rowColors[r % this.rowColors.length],
-          points: 10
+          points: 10,
+          shakeFrames: 0,
+          shakeIntensity: 0
         };
       }
     }
@@ -49,7 +73,73 @@ class BrickGrid {
       brick.health = 1;
     }
 
+    // Trigger subtle shake on hit brick
+    brick.shakeFrames = 7;
+    brick.shakeIntensity = 2.5;
+
+    // Spawn localized complaint bubble
+    this.triggerComplaint(brick);
+
     return previousHealth - brick.health;
+  }
+
+  triggerComplaint(brick, customText = null) {
+    const text = customText || this.complaintsPool[Math.floor(Math.random() * this.complaintsPool.length)];
+    this.lastComplaintTime = Date.now();
+
+    // Prevent screen clutter by pruning oldest speech bubble if limit reached
+    if (this.activeBubbles.length >= this.maxConcurrentBubbles) {
+      this.activeBubbles.shift();
+    }
+
+    this.activeBubbles.push({
+      brick: brick,
+      text: text,
+      timer: 110, // ~1.8 seconds at 60 FPS
+      totalLife: 110
+    });
+  }
+
+  // Comedic interaction helper: returns elapsed ms since last brick hit
+  getTimeSinceLastComplaint() {
+    return Date.now() - this.lastComplaintTime;
+  }
+
+  triggerComedyResponse(text) {
+    // Find any damaged brick to voice the reply
+    let candidate = null;
+    for (let r = 0; r < this.rowCount; r++) {
+      for (let c = 0; c < this.columnCount; c++) {
+        if (this.bricks[r][c].health < 100) {
+          candidate = this.bricks[r][c];
+          break;
+        }
+      }
+      if (candidate) break;
+    }
+    if (!candidate) candidate = this.bricks[0][4]; // Center fallback
+    this.triggerComplaint(candidate, text);
+  }
+
+  update() {
+    // Update individual brick shakes
+    for (let r = 0; r < this.rowCount; r++) {
+      for (let c = 0; c < this.columnCount; c++) {
+        const b = this.bricks[r][c];
+        if (b.shakeFrames > 0) {
+          b.shakeFrames--;
+        }
+      }
+    }
+
+    // Update speech bubbles
+    for (let i = this.activeBubbles.length - 1; i >= 0; i--) {
+      const bubble = this.activeBubbles[i];
+      bubble.timer--;
+      if (bubble.timer <= 0) {
+        this.activeBubbles.splice(i, 1);
+      }
+    }
   }
 
   render(ctx) {
@@ -59,10 +149,21 @@ class BrickGrid {
         this.renderBrick(ctx, b);
       }
     }
+
+    this.renderSpeechBubbles(ctx);
   }
 
   renderBrick(ctx, b) {
     ctx.save();
+
+    // Subtle micro-shake translation
+    let drawX = b.x;
+    let drawY = b.y;
+    if (b.shakeFrames > 0) {
+      drawX += (Math.random() - 0.5) * b.shakeIntensity;
+      drawY += (Math.random() - 0.5) * b.shakeIntensity;
+    }
+
     ctx.fillStyle = b.color;
     ctx.strokeStyle = '#070a12';
     ctx.lineWidth = 1.5;
@@ -72,26 +173,26 @@ class BrickGrid {
       ctx.globalAlpha = 0.85;
 
       ctx.beginPath();
-      ctx.moveTo(b.x + 3, b.y + 4);
-      ctx.lineTo(b.x + 16, b.y + 2);
-      ctx.lineTo(b.x + 11, b.y + 12);
+      ctx.moveTo(drawX + 3, drawY + 4);
+      ctx.lineTo(drawX + 16, drawY + 2);
+      ctx.lineTo(drawX + 11, drawY + 12);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
 
       ctx.beginPath();
-      ctx.moveTo(b.x + 34, b.y + 8);
-      ctx.lineTo(b.x + 48, b.y + 5);
-      ctx.lineTo(b.x + 44, b.y + 16);
-      ctx.lineTo(b.x + 30, b.y + 14);
+      ctx.moveTo(drawX + 34, drawY + 8);
+      ctx.lineTo(drawX + 48, drawY + 5);
+      ctx.lineTo(drawX + 44, drawY + 16);
+      ctx.lineTo(drawX + 30, drawY + 14);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
 
       ctx.beginPath();
-      ctx.moveTo(b.x + 58, b.y + 11);
-      ctx.lineTo(b.x + 69, b.y + 9);
-      ctx.lineTo(b.x + 66, b.y + 18);
+      ctx.moveTo(drawX + 58, drawY + 11);
+      ctx.lineTo(drawX + 69, drawY + 9);
+      ctx.lineTo(drawX + 66, drawY + 18);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
@@ -103,21 +204,21 @@ class BrickGrid {
     // Stage 4: Heavy damage with missing corners
     if (b.health <= 39) {
       ctx.beginPath();
-      ctx.moveTo(b.x + 12, b.y);
-      ctx.lineTo(b.x + b.width - 10, b.y);
-      ctx.lineTo(b.x + b.width, b.y + 10);
-      ctx.lineTo(b.x + b.width - 8, b.y + b.height);
-      ctx.lineTo(b.x + 14, b.y + b.height);
-      ctx.lineTo(b.x, b.y + b.height - 8);
-      ctx.lineTo(b.x, b.y + 10);
+      ctx.moveTo(drawX + 12, drawY);
+      ctx.lineTo(drawX + b.width - 10, drawY);
+      ctx.lineTo(drawX + b.width, drawY + 10);
+      ctx.lineTo(drawX + b.width - 8, drawY + b.height);
+      ctx.lineTo(drawX + 14, drawY + b.height);
+      ctx.lineTo(drawX, drawY + b.height - 8);
+      ctx.lineTo(drawX, drawY + 10);
       ctx.closePath();
       ctx.fill();
 
       ctx.strokeStyle = '#0f172a';
       ctx.beginPath();
-      ctx.moveTo(b.x + 18, b.y + 3);
-      ctx.lineTo(b.x + 38, b.y + 16);
-      ctx.lineTo(b.x + 54, b.y + 6);
+      ctx.moveTo(drawX + 18, drawY + 3);
+      ctx.lineTo(drawX + 38, drawY + 16);
+      ctx.lineTo(drawX + 54, drawY + 6);
       ctx.stroke();
 
       ctx.restore();
@@ -125,18 +226,18 @@ class BrickGrid {
     }
 
     // Stages 1 to 3
-    ctx.fillRect(b.x, b.y, b.width, b.height);
+    ctx.fillRect(drawX, drawY, b.width, b.height);
 
     ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-    ctx.fillRect(b.x, b.y, b.width, 3);
+    ctx.fillRect(drawX, drawY, b.width, 3);
 
     // Stage 2: Small crack
     if (b.health <= 79) {
       ctx.strokeStyle = '#0f172a';
       ctx.beginPath();
-      ctx.moveTo(b.x + 22, b.y + 2);
-      ctx.lineTo(b.x + 30, b.y + 12);
-      ctx.lineTo(b.x + 38, b.y + 8);
+      ctx.moveTo(drawX + 22, drawY + 2);
+      ctx.lineTo(drawX + 30, drawY + 12);
+      ctx.lineTo(drawX + 38, drawY + 8);
       ctx.stroke();
     }
 
@@ -144,14 +245,63 @@ class BrickGrid {
     if (b.health <= 59) {
       ctx.strokeStyle = '#0f172a';
       ctx.beginPath();
-      ctx.moveTo(b.x + 46, b.y + 3);
-      ctx.lineTo(b.x + 52, b.y + 15);
-      ctx.lineTo(b.x + 64, b.y + 12);
-      ctx.moveTo(b.x + 52, b.y + 15);
-      ctx.lineTo(b.x + 48, b.y + b.height);
+      ctx.moveTo(drawX + 46, drawY + 3);
+      ctx.lineTo(drawX + 52, drawY + 15);
+      ctx.lineTo(drawX + 64, drawY + 12);
+      ctx.moveTo(drawX + 52, drawY + 15);
+      ctx.lineTo(drawX + 48, drawY + b.height);
       ctx.stroke();
     }
 
     ctx.restore();
+  }
+
+  renderSpeechBubbles(ctx) {
+    for (const bubble of this.activeBubbles) {
+      const b = bubble.brick;
+      ctx.save();
+
+      // Fade-out animation in the last 20 frames
+      let alpha = 1;
+      if (bubble.timer < 20) {
+        alpha = bubble.timer / 20;
+      }
+      ctx.globalAlpha = alpha;
+
+      ctx.font = 'bold 10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.textAlign = 'center';
+
+      const metrics = ctx.measureText(bubble.text);
+      const bubbleW = metrics.width + 14;
+      const bubbleH = 18;
+      const centerX = b.x + b.width / 2;
+      const bubbleY = b.y - bubbleH - 7;
+      const bubbleX = Math.max(8, Math.min(this.canvasWidth - bubbleW - 8, centerX - bubbleW / 2));
+
+      // Bubble background
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.95)';
+      ctx.strokeStyle = '#f87171';
+      ctx.lineWidth = 1;
+
+      ctx.beginPath();
+      ctx.roundRect(bubbleX, bubbleY, bubbleW, bubbleH, 5);
+      ctx.fill();
+      ctx.stroke();
+
+      // Tail
+      ctx.beginPath();
+      ctx.moveTo(centerX - 3, bubbleY + bubbleH);
+      ctx.lineTo(centerX + 3, bubbleY + bubbleH);
+      ctx.lineTo(centerX, bubbleY + bubbleH + 4);
+      ctx.closePath();
+      ctx.fillStyle = '#f87171';
+      ctx.fill();
+
+      // Text
+      ctx.fillStyle = '#fef2f2';
+      ctx.fillText(bubble.text, bubbleX + bubbleW / 2, bubbleY + 12.5);
+
+      ctx.restore();
+    }
   }
 }

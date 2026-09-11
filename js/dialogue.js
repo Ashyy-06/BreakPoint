@@ -20,7 +20,7 @@ class DialogueManager {
     this.textColor = '#facc15';
     this.opacity = 0;
     this.displayTimer = 0;
-    this.totalDuration = 150; // ~2.5 seconds at 60 FPS
+    this.totalDuration = 150;
     this.fadeSpeed = 0.08;
     this.isFadingOut = false;
   }
@@ -54,12 +54,10 @@ class DialogueManager {
   update() {
     if (this.displayTimer > 0) {
       this.displayTimer--;
-      // Fade in smoothly
       if (this.opacity < 1) {
         this.opacity = Math.min(1, this.opacity + this.fadeSpeed);
       }
     } else if (this.opacity > 0) {
-      // Fade out smoothly
       this.opacity = Math.max(0, this.opacity - this.fadeSpeed);
       if (this.opacity === 0) {
         this.currentText = '';
@@ -75,14 +73,12 @@ class DialogueManager {
     ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
     ctx.textAlign = 'center';
 
-    // Dialogue banner styling
     const textWidth = ctx.measureText(this.currentText).width;
     const bannerWidth = textWidth + 36;
     const bannerHeight = 36;
     const bannerX = (this.canvasWidth - bannerWidth) / 2;
-    const bannerY = 205; // Placed right below the brick area
+    const bannerY = 205;
 
-    // Pill backdrop
     ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
     ctx.strokeStyle = this.textColor;
     ctx.lineWidth = 1.5;
@@ -92,7 +88,6 @@ class DialogueManager {
     ctx.fill();
     ctx.stroke();
 
-    // Dialogue text
     ctx.fillStyle = this.textColor;
     ctx.shadowColor = this.textColor;
     ctx.shadowBlur = 6;

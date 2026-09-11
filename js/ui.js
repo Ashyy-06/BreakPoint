@@ -31,7 +31,6 @@ class UI {
     ctx.fillStyle = '#1e293b';
     ctx.fillRect(barX, barY, barWidth, barHeight);
 
-    // Strictly capped at 99%
     const fillWidth = (barWidth * Math.min(progress, 99)) / 100;
     ctx.fillStyle = '#06b6d4';
     ctx.shadowColor = '#06b6d4';
@@ -54,7 +53,6 @@ class UI {
     ctx.font = '15px sans-serif';
     ctx.fillText('Use Left & Right Arrow keys to control the paddle', this.canvasWidth / 2, this.canvasHeight / 2 - 12);
 
-    // Start Screen Teaser Message
     ctx.font = 'italic 18px Georgia, serif';
     ctx.fillStyle = '#facc15';
     ctx.shadowColor = '#facc15';
