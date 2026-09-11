@@ -70,28 +70,35 @@ class DialogueManager {
 
     ctx.save();
     ctx.globalAlpha = this.opacity;
-    ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.font = 'bold 18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
     ctx.textAlign = 'center';
 
     const textWidth = ctx.measureText(this.currentText).width;
-    const bannerWidth = textWidth + 36;
+    const bannerWidth = textWidth + 38;
     const bannerHeight = 36;
     const bannerX = (this.canvasWidth - bannerWidth) / 2;
-    const bannerY = 205;
+    const bannerY = 220;
 
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
-    ctx.strokeStyle = this.textColor;
-    ctx.lineWidth = 1.5;
+    // Glass pill banner
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.75)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
+    ctx.lineWidth = 1.2;
+    ctx.shadowColor = this.textColor;
+    ctx.shadowBlur = 12;
 
     ctx.beginPath();
     ctx.roundRect(bannerX, bannerY, bannerWidth, bannerHeight, 18);
     ctx.fill();
     ctx.stroke();
 
+    // Top subtle highlight
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.fillRect(bannerX + 10, bannerY + 1, bannerWidth - 20, 1.5);
+
+    // Dialogue text
     ctx.fillStyle = this.textColor;
-    ctx.shadowColor = this.textColor;
-    ctx.shadowBlur = 6;
-    ctx.fillText(this.currentText, this.canvasWidth / 2, bannerY + 25);
+    ctx.shadowBlur = 4;
+    ctx.fillText(this.currentText, this.canvasWidth / 2, bannerY + 24);
 
     ctx.restore();
   }

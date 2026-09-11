@@ -7,21 +7,22 @@ class Ball {
     this.color = '#ffffff';
     this.baseSpeed = 6;
 
-    // Tiredness system attributes
+    // Tiredness mechanics
     this.activePlayTimer = 0;
     this.tiredTargetTime = this.getRandomInterval(20, 40);
     this.isTired = false;
     this.tiredDuration = 0;
     this.speedScale = 1.0;
 
-    // Speech bubble for ball
+    // Glass speech bubble for ball
     this.bubbleText = '';
     this.bubbleTimer = 0;
     this.bubbleOpacity = 0;
+    this.bubbleFloatOffset = 0;
 
     this.recoveryMessages = [
-      "Okay, I'm good.",
-      "That nap fixed nothing. 😭"
+      "😤 Okay, I'm good.",
+      "😭 That nap fixed nothing."
     ];
 
     this.reset();
@@ -44,6 +45,7 @@ class Ball {
     this.bubbleText = '';
     this.bubbleTimer = 0;
     this.bubbleOpacity = 0;
+    this.bubbleFloatOffset = 0;
 
     this.dx = this.baseSpeed * Math.cos(angle);
     this.dy = -Math.abs(this.baseSpeed * Math.sin(angle));
@@ -71,8 +73,10 @@ class Ball {
     this.x += this.dx * this.speedScale;
     this.y += this.dy * this.speedScale;
 
+    // Smooth floating animation for tired ball bubble
     if (this.bubbleTimer > 0) {
       this.bubbleTimer--;
+      this.bubbleFloatOffset = Math.sin(this.bubbleTimer * 0.1) * 3;
       if (this.bubbleTimer < 20) {
         this.bubbleOpacity = this.bubbleTimer / 20;
       }
@@ -110,18 +114,18 @@ class Ball {
   render(ctx) {
     ctx.save();
     ctx.fillStyle = this.color;
-    ctx.shadowColor = this.isTired ? '#93c5fd' : '#ffffff';
-    ctx.shadowBlur = this.isTired ? 14 : 10;
+    ctx.shadowColor = this.isTired ? '#93c5fd' : '#38bdf8';
+    ctx.shadowBlur = this.isTired ? 18 : 12;
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
     ctx.fill();
     ctx.closePath();
     ctx.restore();
 
-    this.renderBubble(ctx);
+    this.renderGlassBubble(ctx);
   }
 
-  renderBubble(ctx) {
+  renderGlassBubble(ctx) {
     if (this.bubbleOpacity <= 0 || !this.bubbleText) return;
 
     ctx.save();
@@ -130,30 +134,40 @@ class Ball {
     ctx.textAlign = 'center';
 
     const textMetrics = ctx.measureText(this.bubbleText);
-    const boxWidth = textMetrics.width + 16;
-    const boxHeight = 22;
+    const boxWidth = textMetrics.width + 20;
+    const boxHeight = 26;
     const boxX = this.x - boxWidth / 2;
-    const boxY = this.y - 34;
+    const boxY = this.y - 42 + this.bubbleFloatOffset;
 
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.94)';
-    ctx.strokeStyle = '#38bdf8';
-    ctx.lineWidth = 1.2;
+    // Glass panel
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.72)';
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.6)';
+    ctx.lineWidth = 1;
+    ctx.shadowColor = 'rgba(56, 189, 248, 0.4)';
+    ctx.shadowBlur = 10;
 
     ctx.beginPath();
-    ctx.roundRect(boxX, boxY, boxWidth, boxHeight, 6);
+    ctx.roundRect(boxX, boxY, boxWidth, boxHeight, 10);
     ctx.fill();
     ctx.stroke();
 
+    // Top highlight rim
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+    ctx.fillRect(boxX + 6, boxY + 1, boxWidth - 12, 1.5);
+
+    // Tip
     ctx.beginPath();
     ctx.moveTo(this.x - 4, boxY + boxHeight);
     ctx.lineTo(this.x + 4, boxY + boxHeight);
     ctx.lineTo(this.x, boxY + boxHeight + 4);
     ctx.closePath();
-    ctx.fillStyle = '#38bdf8';
+    ctx.fillStyle = 'rgba(56, 189, 248, 0.7)';
     ctx.fill();
 
-    ctx.fillStyle = '#e2e8f0';
-    ctx.fillText(this.bubbleText, this.x, boxY + 15);
+    // Text
+    ctx.fillStyle = '#f8fafc';
+    ctx.shadowBlur = 0;
+    ctx.fillText(this.bubbleText, this.x, boxY + 17);
 
     ctx.restore();
   }

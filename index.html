@@ -7,13 +7,54 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <!-- Ambient background glow orbs for glassmorphism refraction -->
+  <div class="glow-orb orb-1"></div>
+  <div class="glow-orb orb-2"></div>
+  <div class="glow-orb orb-3"></div>
+
   <div id="game-container">
-    <!-- Top UI Bar containing Controls -->
+    <!-- Top Glass Controls Bar -->
     <div id="game-controls">
-      <button id="stop-btn" class="control-btn" disabled>🛑 STOP</button>
+      <button id="stop-btn" class="glass-btn stop-btn" disabled>🛑 STOP</button>
     </div>
 
     <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+    <!-- Modal Glass Overlays -->
+    <div id="overlay-container" class="active">
+      <!-- Start Screen Modal -->
+      <div id="start-modal" class="glass-modal active">
+        <h1 class="glow-title">BREAKPOINT</h1>
+        <p class="subtitle">Use Left & Right Arrow keys to control the paddle</p>
+        <p class="teaser-quote">"Inn Aayi Kazhinjaal Pinne Bhayankara Thrill Aanu.."</p>
+        <button id="start-btn" class="glass-btn action-btn">▶ START GAME</button>
+      </div>
+
+      <!-- Stop/Prank Screen Modal -->
+      <div id="stop-modal" class="glass-modal">
+        <h2 class="danger-title">GAME STOPPED 🛑</h2>
+        <div class="prank-box">
+          <h3 class="prank-heading">JUST KIDDING 😂</h3>
+          <p class="prank-subheading">You can't escape the bricks. 🧱</p>
+          <p id="stop-joke-text" class="joke-quote"></p>
+        </div>
+        <button id="resume-btn" class="glass-btn action-btn">▶ RESUME GAME</button>
+      </div>
+
+      <!-- Game Over Screen Modal -->
+      <div id="gameover-modal" class="glass-modal">
+        <h2 class="danger-title">GAME OVER 💀</h2>
+        <div class="stats-box">
+          <p id="final-score">Score: 0</p>
+          <p id="final-stats">Hits: 0 | Damage: 0</p>
+        </div>
+        <div id="gameover-prank-box" class="prank-box prank-hidden">
+          <h3 class="prank-heading">JUST KIDDING 😂</h3>
+          <p class="prank-subheading">You can't escape the bricks. 🧱</p>
+        </div>
+        <button id="retry-btn" class="glass-btn action-btn">🔄 TRY AGAIN</button>
+      </div>
+    </div>
   </div>
 
   <script src="js/ui.js"></script>

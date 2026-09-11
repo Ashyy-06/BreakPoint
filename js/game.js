@@ -44,6 +44,8 @@ class ParticleSystem {
     for (const p of this.particles) {
       ctx.globalAlpha = Math.max(0, p.life);
       ctx.fillStyle = p.color;
+      ctx.shadowColor = p.color;
+      ctx.shadowBlur = 6;
       ctx.fillRect(p.x, p.y, p.size, p.size);
     }
     ctx.restore();
@@ -103,7 +105,12 @@ class Game {
   constructor() {
     this.canvas = document.getElementById('gameCanvas');
     this.ctx = this.canvas.getContext('2d');
+
+    // Button references
     this.stopBtn = document.getElementById('stop-btn');
+    this.startBtn = document.getElementById('start-btn');
+    this.resumeBtn = document.getElementById('resume-btn');
+    this.retryBtn = document.getElementById('retry-btn');
 
     this.width = this.canvas.width;
     this.height = this.canvas.height;
@@ -139,6 +146,9 @@ class Game {
 
     this.handleTiredInteraction = this.handleTiredInteraction.bind(this);
     this.toggleStop = this.toggleStop.bind(this);
+    this.startGame = this.startGame.bind(this);
+    this.resumeGame = this.resumeGame.bind(this);
+    this.retryGame = this.retryGame.bind(this);
 
     this.initControls();
     this.loop = this.loop.bind(this);
@@ -151,22 +161,27 @@ class Game {
         this.sound.init();
 
         if (this.currentState === GameState.START) {
-          this.currentState = GameState.PLAYING;
-          this.updateStopButton();
+          this.startGame();
         } else if (this.currentState === GameState.STOPPED) {
           this.resumeGame();
         } else if (this.currentState === GameState.GAME_OVER) {
-          this.restartGame();
-          this.currentState = GameState.PLAYING;
-          this.updateStopButton();
+          this.retryGame();
         }
       }
     });
 
-    // UI Stop Button Listener
-    this.stopBtn.addEventListener('click', () => {
-      this.toggleStop();
-    });
+    // Button interactions
+    this.stopBtn.addEventListener('click', this.toggleStop);
+    this.startBtn.addEventListener('click', this.startGame);
+    this.resumeBtn.addEventListener('click', this.resumeGame);
+    this.retryBtn.addEventListener('click', this.retryGame);
+  }
+
+  startGame() {
+    this.sound.init();
+    this.currentState = GameState.PLAYING;
+    this.ui.showScreen('PLAYING');
+    this.updateStopButton();
   }
 
   toggleStop() {
@@ -177,6 +192,8 @@ class Game {
       this.currentStopJoke = this.stopEscapeDialogues[
         Math.floor(Math.random() * this.stopEscapeDialogues.length)
       ];
+      this.ui.setStopJoke(this.currentStopJoke);
+      this.ui.showScreen('STOPPED');
       this.updateStopButton();
     } else if (this.currentState === GameState.STOPPED) {
       this.resumeGame();
@@ -185,22 +202,25 @@ class Game {
 
   resumeGame() {
     this.currentState = GameState.PLAYING;
+    this.ui.showScreen('PLAYING');
     this.updateStopButton();
+  }
+
+  retryGame() {
+    this.restartGame();
+    this.startGame();
   }
 
   updateStopButton() {
     if (this.currentState === GameState.PLAYING) {
       this.stopBtn.disabled = false;
       this.stopBtn.innerText = '🛑 STOP';
-      this.stopBtn.style.backgroundColor = '#ef4444';
     } else if (this.currentState === GameState.STOPPED) {
       this.stopBtn.disabled = false;
       this.stopBtn.innerText = '▶️ RESUME';
-      this.stopBtn.style.backgroundColor = '#22c55e';
     } else {
       this.stopBtn.disabled = true;
       this.stopBtn.innerText = '🛑 STOP';
-      this.stopBtn.style.backgroundColor = '#ef4444';
     }
   }
 
@@ -237,7 +257,10 @@ class Game {
   }
 
   update() {
-    // If stopped or in menus, pause physics, active ball velocity, and timers
+    if (this.currentState === GameState.GAME_OVER) {
+      this.ui.updateGameOverPrank();
+    }
+
     if (this.currentState !== GameState.PLAYING) {
       return;
     }
@@ -267,6 +290,8 @@ class Game {
       if (this.lives <= 0) {
         this.currentState = GameState.GAME_OVER;
         this.ui.resetPranks();
+        this.ui.setGameOverStats(this.score, this.hitsLanded, this.totalDamage);
+        this.ui.showScreen('GAME_OVER');
         this.updateStopButton();
       } else {
         this.paddle.reset();
@@ -307,9 +332,7 @@ class Game {
       this.ctx.translate(offsetX, offsetY);
     }
 
-    this.ctx.fillStyle = '#0b1120';
-    this.ctx.fillRect(0, 0, this.width, this.height);
-
+    // World Elements
     this.brickGrid.render(this.ctx);
     this.paddle.render(this.ctx);
     this.ball.render(this.ctx);
@@ -317,7 +340,8 @@ class Game {
 
     this.ctx.restore();
 
-    this.ui.renderHUD(
+    // Canvas Glass HUD & In-Game Banner
+    this.ui.renderGlassHUD(
       this.ctx,
       this.score,
       this.lives,
@@ -328,17 +352,6 @@ class Game {
 
     if (this.currentState === GameState.PLAYING) {
       this.dialogue.render(this.ctx);
-    } else if (this.currentState === GameState.STOPPED) {
-      this.ui.renderStoppedScreen(this.ctx, this.currentStopJoke);
-    } else if (this.currentState === GameState.START) {
-      this.ui.renderStartScreen(this.ctx);
-    } else if (this.currentState === GameState.GAME_OVER) {
-      this.ui.renderGameOverScreen(
-        this.ctx,
-        this.score,
-        this.hitsLanded,
-        this.totalDamage
-      );
     }
   }
 
@@ -349,6 +362,7 @@ class Game {
   }
 
   start() {
+    this.ui.showScreen('START');
     this.updateStopButton();
     requestAnimationFrame(this.loop);
   }

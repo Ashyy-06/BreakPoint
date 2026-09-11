@@ -6,12 +6,12 @@ class BrickGrid {
     this.brickWidth = 72;
     this.brickHeight = 20;
     this.padding = 10;
-    this.offsetTop = 70;
+    this.offsetTop = 76; // Accommodates Glass HUD
 
     const totalGridWidth = this.columnCount * this.brickWidth + (this.columnCount - 1) * this.padding;
     this.offsetLeft = (this.canvasWidth - totalGridWidth) / 2;
 
-    this.rowColors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4'];
+    this.rowColors = ['#f43f5e', '#fb923c', '#facc15', '#4ade80', '#38bdf8'];
     this.bricks = [];
 
     this.complaintsPool = [
@@ -141,7 +141,7 @@ class BrickGrid {
       }
     }
 
-    this.renderSpeechBubbles(ctx);
+    this.renderGlassSpeechBubbles(ctx);
   }
 
   renderBrick(ctx, b) {
@@ -155,10 +155,10 @@ class BrickGrid {
     }
 
     ctx.fillStyle = b.color;
-    ctx.strokeStyle = '#070a12';
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+    ctx.lineWidth = 1;
 
-    // Stage 5
+    // Stage 5: Fragment preservation
     if (b.health <= 19) {
       ctx.globalAlpha = 0.85;
 
@@ -191,7 +191,7 @@ class BrickGrid {
       return;
     }
 
-    // Stage 4
+    // Stage 4: Heavy damage
     if (b.health <= 39) {
       ctx.beginPath();
       ctx.moveTo(drawX + 12, drawY);
@@ -216,14 +216,19 @@ class BrickGrid {
     }
 
     // Stages 1 to 3
-    ctx.fillRect(drawX, drawY, b.width, b.height);
+    ctx.beginPath();
+    ctx.roundRect(drawX, drawY, b.width, b.height, 4);
+    ctx.fill();
+    ctx.stroke();
 
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-    ctx.fillRect(drawX, drawY, b.width, 3);
+    // Glass sheen on brick
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.28)';
+    ctx.fillRect(drawX + 2, drawY + 1, b.width - 4, 3);
 
-    // Stage 2
+    // Stage 2 Crack
     if (b.health <= 79) {
-      ctx.strokeStyle = '#0f172a';
+      ctx.strokeStyle = 'rgba(15, 23, 42, 0.8)';
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.moveTo(drawX + 22, drawY + 2);
       ctx.lineTo(drawX + 30, drawY + 12);
@@ -231,9 +236,10 @@ class BrickGrid {
       ctx.stroke();
     }
 
-    // Stage 3
+    // Stage 3 Crack
     if (b.health <= 59) {
-      ctx.strokeStyle = '#0f172a';
+      ctx.strokeStyle = 'rgba(15, 23, 42, 0.8)';
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.moveTo(drawX + 46, drawY + 3);
       ctx.lineTo(drawX + 52, drawY + 15);
@@ -246,46 +252,64 @@ class BrickGrid {
     ctx.restore();
   }
 
-  renderSpeechBubbles(ctx) {
+  renderGlassSpeechBubbles(ctx) {
     for (const bubble of this.activeBubbles) {
       const b = bubble.brick;
       ctx.save();
 
       let alpha = 1;
+      let scale = 1;
+      const lifeRatio = bubble.timer / bubble.totalLife;
+
+      // Pop-in and Fade-out scale
+      if (lifeRatio > 0.9) {
+        scale = 0.7 + (1 - (lifeRatio - 0.9) * 10) * 0.3;
+      }
       if (bubble.timer < 20) {
         alpha = bubble.timer / 20;
       }
-      ctx.globalAlpha = alpha;
 
-      ctx.font = 'bold 10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.globalAlpha = alpha;
+      ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
       ctx.textAlign = 'center';
 
       const metrics = ctx.measureText(bubble.text);
-      const bubbleW = metrics.width + 14;
-      const bubbleH = 18;
+      const bubbleW = metrics.width + 18;
+      const bubbleH = 22;
       const centerX = b.x + b.width / 2;
-      const bubbleY = b.y - bubbleH - 7;
+      const bubbleY = b.y - bubbleH - 8;
       const bubbleX = Math.max(8, Math.min(this.canvasWidth - bubbleW - 8, centerX - bubbleW / 2));
 
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.95)';
-      ctx.strokeStyle = '#f87171';
+      // Pop transformation
+      ctx.translate(centerX, bubbleY + bubbleH / 2);
+      ctx.scale(scale, scale);
+      ctx.translate(-centerX, -(bubbleY + bubbleH / 2));
+
+      // Glass bubble container
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.82)';
+      ctx.strokeStyle = 'rgba(248, 113, 113, 0.5)';
       ctx.lineWidth = 1;
+      ctx.shadowColor = 'rgba(239, 68, 68, 0.3)';
+      ctx.shadowBlur = 8;
 
       ctx.beginPath();
-      ctx.roundRect(bubbleX, bubbleY, bubbleW, bubbleH, 5);
+      ctx.roundRect(bubbleX, bubbleY, bubbleW, bubbleH, 7);
       ctx.fill();
       ctx.stroke();
 
+      // Translucent pointer
       ctx.beginPath();
       ctx.moveTo(centerX - 3, bubbleY + bubbleH);
       ctx.lineTo(centerX + 3, bubbleY + bubbleH);
       ctx.lineTo(centerX, bubbleY + bubbleH + 4);
       ctx.closePath();
-      ctx.fillStyle = '#f87171';
+      ctx.fillStyle = 'rgba(248, 113, 113, 0.6)';
       ctx.fill();
 
-      ctx.fillStyle = '#fef2f2';
-      ctx.fillText(bubble.text, bubbleX + bubbleW / 2, bubbleY + 12.5);
+      // Text
+      ctx.fillStyle = '#fee2e2';
+      ctx.shadowBlur = 0;
+      ctx.fillText(bubble.text, bubbleX + bubbleW / 2, bubbleY + 15);
 
       ctx.restore();
     }

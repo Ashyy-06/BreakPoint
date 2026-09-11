@@ -3,167 +3,137 @@ class UI {
     this.canvasWidth = canvasWidth;
     this.canvasHeight = canvasHeight;
 
-    // Prank tracking
+    this.overlayContainer = document.getElementById('overlay-container');
+    this.startModal = document.getElementById('start-modal');
+    this.stopModal = document.getElementById('stop-modal');
+    this.gameoverModal = document.getElementById('gameover-modal');
+
+    this.gameoverPrankBox = document.getElementById('gameover-prank-box');
+    this.finalScoreEl = document.getElementById('final-score');
+    this.finalStatsEl = document.getElementById('final-stats');
+    this.stopJokeEl = document.getElementById('stop-joke-text');
+
     this.gameOverTimer = 0;
     this.showGameOverPrank = false;
+  }
+
+  showScreen(screen) {
+    this.startModal.classList.remove('active');
+    this.stopModal.classList.remove('active');
+    this.gameoverModal.classList.remove('active');
+
+    if (screen === 'START') {
+      this.overlayContainer.classList.add('active');
+      this.startModal.classList.add('active');
+    } else if (screen === 'STOPPED') {
+      this.overlayContainer.classList.add('active');
+      this.stopModal.classList.add('active');
+    } else if (screen === 'GAME_OVER') {
+      this.overlayContainer.classList.add('active');
+      this.gameoverModal.classList.add('active');
+    } else {
+      this.overlayContainer.classList.remove('active');
+    }
+  }
+
+  setStopJoke(joke) {
+    if (this.stopJokeEl) {
+      this.stopJokeEl.innerText = `"${joke}"`;
+    }
+  }
+
+  setGameOverStats(score, hits, damage) {
+    if (this.finalScoreEl) this.finalScoreEl.innerText = `Final Score: ${score}`;
+    if (this.finalStatsEl) this.finalStatsEl.innerText = `Hits Landed: ${hits} | Damage Dealt: ${damage}`;
   }
 
   resetPranks() {
     this.gameOverTimer = 0;
     this.showGameOverPrank = false;
-  }
-
-  updatePrankTimers() {
-    this.gameOverTimer++;
-    if (this.gameOverTimer > 90) { // ~1.5s delay
-      this.showGameOverPrank = true;
+    if (this.gameoverPrankBox) {
+      this.gameoverPrankBox.classList.remove('revealed');
+      this.gameoverPrankBox.classList.add('prank-hidden');
     }
   }
 
-  renderHUD(ctx, score, lives, hitsLanded, totalDamage, progress) {
-    ctx.save();
-    ctx.font = 'bold 13px sans-serif';
-    ctx.fillStyle = '#94a3b8';
+  updateGameOverPrank() {
+    if (!this.showGameOverPrank) {
+      this.gameOverTimer++;
+      if (this.gameOverTimer > 85) { // ~1.4s delay
+        this.showGameOverPrank = true;
+        if (this.gameoverPrankBox) {
+          this.gameoverPrankBox.classList.remove('prank-hidden');
+          this.gameoverPrankBox.classList.add('revealed');
+        }
+      }
+    }
+  }
 
+  renderGlassHUD(ctx, score, lives, hitsLanded, totalDamage, progress) {
+    ctx.save();
+
+    // Floating Glass HUD Panel Bar at top
+    const hudX = 14;
+    const hudY = 12;
+    const hudW = this.canvasWidth - 140; // Leaves space for Stop button
+    const hudH = 50;
+
+    // Translucent glass fill
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+    ctx.lineWidth = 1;
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
+    ctx.shadowBlur = 12;
+
+    ctx.beginPath();
+    ctx.roundRect(hudX, hudY, hudW, hudH, 12);
+    ctx.fill();
+    ctx.stroke();
+
+    // Subtle glass top highlight
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+    ctx.fillRect(hudX + 12, hudY + 1, hudW - 24, 1.5);
+
+    // Text & Stats Rendering
+    ctx.shadowBlur = 0;
+    ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.fillStyle = '#94a3b8';
     ctx.textAlign = 'left';
-    ctx.fillText(`SCORE: ${score}`, 20, 24);
-    ctx.fillText(`HITS: ${hitsLanded}`, 140, 24);
-    ctx.fillText(`DAMAGE: ${totalDamage}`, 240, 24);
+
+    ctx.fillText(`SCORE: ${score}`, hudX + 16, hudY + 20);
+    ctx.fillText(`HITS: ${hitsLanded}`, hudX + 120, hudY + 20);
+    ctx.fillText(`DAMAGE: ${totalDamage}`, hudX + 210, hudY + 20);
 
     ctx.textAlign = 'right';
-    ctx.fillText(`LIVES: ${lives}`, this.canvasWidth - 110, 24); // Spaced from stop button
+    ctx.fillStyle = '#f43f5e';
+    ctx.fillText(`❤️ LIVES: ${lives}`, hudX + hudW - 18, hudY + 20);
 
-    // Wall Destruction Progress Bar
-    const barWidth = 300;
-    const barHeight = 10;
-    const barX = (this.canvasWidth - barWidth) / 2;
-    const barY = 42;
+    // Glassmorphic Wall Destruction Progress Bar
+    const barWidth = 260;
+    const barHeight = 8;
+    const barX = (hudW - barWidth) / 2 + hudX - 10;
+    const barY = hudY + 32;
 
     ctx.textAlign = 'center';
-    ctx.font = '11px sans-serif';
+    ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
     ctx.fillStyle = '#64748b';
-    ctx.fillText(`WALL DESTRUCTION PROGRESS: ${Math.floor(progress)}%`, this.canvasWidth / 2, 38);
+    ctx.fillText(`PROGRESS: ${Math.floor(progress)}%`, hudX + (hudW / 2) - 10, hudY + 28);
 
-    ctx.fillStyle = '#1e293b';
-    ctx.fillRect(barX, barY, barWidth, barHeight);
+    // Progress Track
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.7)';
+    ctx.beginPath();
+    ctx.roundRect(barX, barY, barWidth, barHeight, 4);
+    ctx.fill();
 
+    // Progress Fill (Capped visibly at 99%)
     const fillWidth = (barWidth * Math.min(progress, 99)) / 100;
-    ctx.fillStyle = '#06b6d4';
-    ctx.shadowColor = '#06b6d4';
-    ctx.shadowBlur = 6;
-    ctx.fillRect(barX, barY, fillWidth, barHeight);
-
-    ctx.restore();
-  }
-
-  renderStartScreen(ctx) {
-    this.drawOverlay(ctx);
-    ctx.save();
-    ctx.textAlign = 'center';
-
     ctx.fillStyle = '#38bdf8';
-    ctx.font = 'bold 46px sans-serif';
-    ctx.fillText('BREAKPOINT', this.canvasWidth / 2, this.canvasHeight / 2 - 60);
-
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = '15px sans-serif';
-    ctx.fillText('Use Left & Right Arrow keys to control the paddle', this.canvasWidth / 2, this.canvasHeight / 2 - 12);
-
-    ctx.font = 'italic 18px Georgia, serif';
-    ctx.fillStyle = '#facc15';
-    ctx.shadowColor = '#facc15';
-    ctx.shadowBlur = 8;
-    ctx.fillText('"Inn Aayi Kazhinjaal Pinne Bhayankara Thrill Aanu.."', this.canvasWidth / 2, this.canvasHeight / 2 + 32);
-
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = '#22c55e';
-    ctx.font = 'bold 18px sans-serif';
-    ctx.fillText('PRESS SPACE TO START', this.canvasWidth / 2, this.canvasHeight / 2 + 84);
-    ctx.restore();
-  }
-
-  renderGameOverScreen(ctx, score, hitsLanded, totalDamage) {
-    this.drawOverlay(ctx);
-    this.updatePrankTimers();
-
-    ctx.save();
-    ctx.textAlign = 'center';
-
-    ctx.fillStyle = '#ef4444';
-    ctx.font = 'bold 44px sans-serif';
-    ctx.fillText('GAME OVER 💀', this.canvasWidth / 2, this.canvasHeight / 2 - 60);
-
-    ctx.fillStyle = '#e2e8f0';
-    ctx.font = '16px sans-serif';
-    ctx.fillText(`Final Score: ${score}`, this.canvasWidth / 2, this.canvasHeight / 2 - 20);
-    ctx.fillText(`Hits Landed: ${hitsLanded} | Damage Dealt: ${totalDamage}`, this.canvasWidth / 2, this.canvasHeight / 2 + 8);
-
-    // Prank transition pop-in after 1.5s
-    if (this.showGameOverPrank) {
-      const shake = (Math.random() - 0.5) * 2.5;
-      ctx.save();
-      ctx.translate(shake, shake);
-
-      ctx.fillStyle = '#facc15';
-      ctx.font = 'bold 24px sans-serif';
-      ctx.shadowColor = '#facc15';
-      ctx.shadowBlur = 10;
-      ctx.fillText('JUST KIDDING 😂', this.canvasWidth / 2, this.canvasHeight / 2 + 56);
-
-      ctx.fillStyle = '#38bdf8';
-      ctx.font = 'bold 18px sans-serif';
-      ctx.shadowColor = '#38bdf8';
-      ctx.shadowBlur = 8;
-      ctx.fillText("You can't escape the bricks. 🧱", this.canvasWidth / 2, this.canvasHeight / 2 + 84);
-
-      ctx.restore();
-    }
-
-    ctx.fillStyle = '#22c55e';
-    ctx.font = 'bold 18px sans-serif';
-    ctx.fillText('PRESS SPACE TO TRY AGAIN 🔄', this.canvasWidth / 2, this.canvasHeight / 2 + 130);
-    ctx.restore();
-  }
-
-  renderStoppedScreen(ctx, escapeJoke) {
-    this.drawOverlay(ctx);
-    ctx.save();
-    ctx.textAlign = 'center';
-
-    ctx.fillStyle = '#ef4444';
-    ctx.font = 'bold 40px sans-serif';
-    ctx.fillText('GAME STOPPED 🛑', this.canvasWidth / 2, this.canvasHeight / 2 - 65);
-
-    // Prank announcement
-    ctx.fillStyle = '#facc15';
-    ctx.font = 'bold 26px sans-serif';
-    ctx.shadowColor = '#facc15';
-    ctx.shadowBlur = 10;
-    ctx.fillText('JUST KIDDING 😂', this.canvasWidth / 2, this.canvasHeight / 2 - 15);
-
-    ctx.fillStyle = '#38bdf8';
-    ctx.font = 'bold 20px sans-serif';
     ctx.shadowColor = '#38bdf8';
     ctx.shadowBlur = 8;
-    ctx.fillText("You can't escape the bricks. 🧱", this.canvasWidth / 2, this.canvasHeight / 2 + 18);
+    ctx.beginPath();
+    ctx.roundRect(barX, barY, fillWidth, barHeight, 4);
+    ctx.fill();
 
-    // Randomized comedy flavor
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = 'italic 16px sans-serif';
-    ctx.fillText(`"${escapeJoke}"`, this.canvasWidth / 2, this.canvasHeight / 2 + 55);
-
-    // Resume button indicator
-    ctx.fillStyle = '#22c55e';
-    ctx.font = 'bold 19px sans-serif';
-    ctx.fillText('PRESS SPACE OR CLICK RESUME ▶️', this.canvasWidth / 2, this.canvasHeight / 2 + 105);
-    ctx.restore();
-  }
-
-  drawOverlay(ctx) {
-    ctx.save();
-    ctx.fillStyle = 'rgba(7, 10, 18, 0.88)';
-    ctx.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
     ctx.restore();
   }
 }
