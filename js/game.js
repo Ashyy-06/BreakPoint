@@ -1,6 +1,7 @@
 const GameState = {
   START: 'START',
   PLAYING: 'PLAYING',
+  STOPPED: 'STOPPED',
   GAME_OVER: 'GAME_OVER'
 };
 
@@ -102,6 +103,7 @@ class Game {
   constructor() {
     this.canvas = document.getElementById('gameCanvas');
     this.ctx = this.canvas.getContext('2d');
+    this.stopBtn = document.getElementById('stop-btn');
 
     this.width = this.canvas.width;
     this.height = this.canvas.height;
@@ -125,23 +127,81 @@ class Game {
     this.ball = new Ball(this.width, this.height);
     this.brickGrid = new BrickGrid(this.width);
 
+    this.stopEscapeDialogues = [
+      "Running away? The bricks saw that. 👀",
+      "Bro really pressed stop to escape the bricks.",
+      "The bricks are disappointed in you. 🧱",
+      "You can stop the game, but you can't stop the bricks.",
+      "Nice try. The bricks are still waiting.",
+      "Escape attempt detected. 🚨"
+    ];
+    this.currentStopJoke = '';
+
     this.handleTiredInteraction = this.handleTiredInteraction.bind(this);
+    this.toggleStop = this.toggleStop.bind(this);
+
     this.initControls();
     this.loop = this.loop.bind(this);
   }
 
   initControls() {
+    // Keyboard controller
     window.addEventListener('keydown', (e) => {
       if (e.code === 'Space') {
         this.sound.init();
+
         if (this.currentState === GameState.START) {
           this.currentState = GameState.PLAYING;
+          this.updateStopButton();
+        } else if (this.currentState === GameState.STOPPED) {
+          this.resumeGame();
         } else if (this.currentState === GameState.GAME_OVER) {
           this.restartGame();
           this.currentState = GameState.PLAYING;
+          this.updateStopButton();
         }
       }
     });
+
+    // UI Stop Button Listener
+    this.stopBtn.addEventListener('click', () => {
+      this.toggleStop();
+    });
+  }
+
+  toggleStop() {
+    this.sound.init();
+
+    if (this.currentState === GameState.PLAYING) {
+      this.currentState = GameState.STOPPED;
+      this.currentStopJoke = this.stopEscapeDialogues[
+        Math.floor(Math.random() * this.stopEscapeDialogues.length)
+      ];
+      this.updateStopButton();
+    } else if (this.currentState === GameState.STOPPED) {
+      this.resumeGame();
+    }
+  }
+
+  resumeGame() {
+    this.currentState = GameState.PLAYING;
+    this.updateStopButton();
+  }
+
+  updateStopButton() {
+    if (this.currentState === GameState.PLAYING) {
+      this.stopBtn.disabled = false;
+      this.stopBtn.innerText = '🛑 STOP';
+      this.stopBtn.style.backgroundColor = '#ef4444';
+    } else if (this.currentState === GameState.STOPPED) {
+      this.stopBtn.disabled = false;
+      this.stopBtn.innerText = '▶️ RESUME';
+      this.stopBtn.style.backgroundColor = '#22c55e';
+    } else {
+      this.stopBtn.disabled = true;
+      this.stopBtn.innerText = '🛑 STOP';
+      this.stopBtn.style.backgroundColor = '#ef4444';
+    }
   }
 
   restartGame() {
@@ -154,6 +214,8 @@ class Game {
     this.ball.reset();
     this.brickGrid.reset();
     this.dialogue.reset();
+    this.ui.resetPranks();
+    this.updateStopButton();
   }
 
   triggerShake(intensity = 4, duration = 6) {
@@ -161,12 +223,8 @@ class Game {
     this.shakeDuration = duration;
   }
 
-  /**
-   * Comedic interaction handler when the ball becomes tired shortly after a brick complaint.
-   */
   handleTiredInteraction() {
     const timeSinceHit = this.brickGrid.getTimeSinceLastComplaint();
-    // If a complaint happened in the last 1.8 seconds (1800ms)
     if (timeSinceHit < 1800) {
       if (Math.random() > 0.5) {
         return { ballReply: "Don't blame me, bro. 🥱" };
@@ -179,15 +237,16 @@ class Game {
   }
 
   update() {
+    // If stopped or in menus, pause physics, active ball velocity, and timers
+    if (this.currentState !== GameState.PLAYING) {
+      return;
+    }
+
     this.particles.update();
     this.dialogue.update();
 
     if (this.shakeDuration > 0) {
       this.shakeDuration--;
-    }
-
-    if (this.currentState !== GameState.PLAYING) {
-      return;
     }
 
     this.paddle.update();
@@ -200,7 +259,6 @@ class Game {
       this.height
     );
 
-    // Ball dropped below paddle
     if (wallHit.hitBottom) {
       this.lives--;
       this.dialogue.showMissMessage();
@@ -208,6 +266,8 @@ class Game {
 
       if (this.lives <= 0) {
         this.currentState = GameState.GAME_OVER;
+        this.ui.resetPranks();
+        this.updateStopButton();
       } else {
         this.paddle.reset();
         this.ball.reset();
@@ -241,7 +301,7 @@ class Game {
     this.ctx.save();
     this.ctx.clearRect(0, 0, this.width, this.height);
 
-    if (this.shakeDuration > 0) {
+    if (this.shakeDuration > 0 && this.currentState === GameState.PLAYING) {
       const offsetX = (Math.random() - 0.5) * this.shakeIntensity;
       const offsetY = (Math.random() - 0.5) * this.shakeIntensity;
       this.ctx.translate(offsetX, offsetY);
@@ -268,6 +328,8 @@ class Game {
 
     if (this.currentState === GameState.PLAYING) {
       this.dialogue.render(this.ctx);
+    } else if (this.currentState === GameState.STOPPED) {
+      this.ui.renderStoppedScreen(this.ctx, this.currentStopJoke);
     } else if (this.currentState === GameState.START) {
       this.ui.renderStartScreen(this.ctx);
     } else if (this.currentState === GameState.GAME_OVER) {
@@ -287,6 +349,7 @@ class Game {
   }
 
   start() {
+    this.updateStopButton();
     requestAnimationFrame(this.loop);
   }
 }

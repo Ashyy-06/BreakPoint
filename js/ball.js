@@ -9,7 +9,7 @@ class Ball {
 
     // Tiredness system attributes
     this.activePlayTimer = 0;
-    this.tiredTargetTime = this.getRandomInterval(20, 40); // 20–40 seconds
+    this.tiredTargetTime = this.getRandomInterval(20, 40);
     this.isTired = false;
     this.tiredDuration = 0;
     this.speedScale = 1.0;
@@ -28,7 +28,7 @@ class Ball {
   }
 
   getRandomInterval(minSec, maxSec) {
-    return (minSec + Math.random() * (maxSec - minSec)) * 60; // Frames at ~60fps
+    return (minSec + Math.random() * (maxSec - minSec)) * 60;
   }
 
   reset() {
@@ -56,7 +56,6 @@ class Ball {
   }
 
   update(onTiredCallback) {
-    // Increment fatigue timer if ball is actively in play
     if (!this.isTired) {
       this.activePlayTimer++;
       if (this.activePlayTimer >= this.tiredTargetTime) {
@@ -69,11 +68,9 @@ class Ball {
       }
     }
 
-    // Apply movement with current speed scale
     this.x += this.dx * this.speedScale;
     this.y += this.dy * this.speedScale;
 
-    // Bubble lifecycle
     if (this.bubbleTimer > 0) {
       this.bubbleTimer--;
       if (this.bubbleTimer < 20) {
@@ -86,8 +83,8 @@ class Ball {
 
   triggerTiredState(onTiredCallback) {
     this.isTired = true;
-    this.speedScale = 0.45; // ~55% speed reduction
-    this.tiredDuration = Math.floor((3.5 + Math.random() * 1.5) * 60); // 3.5 to 5.0 seconds
+    this.speedScale = 0.45;
+    this.tiredDuration = Math.floor((3.5 + Math.random() * 1.5) * 60);
 
     let dialog = "🥱 Bro... can we take a break?";
     if (onTiredCallback) {
@@ -104,7 +101,7 @@ class Ball {
     this.isTired = false;
     this.speedScale = 1.0;
     this.activePlayTimer = 0;
-    this.tiredTargetTime = this.getRandomInterval(25, 45); // Cooldown buffer
+    this.tiredTargetTime = this.getRandomInterval(25, 45);
 
     const chosenRecovery = this.recoveryMessages[Math.floor(Math.random() * this.recoveryMessages.length)];
     this.showBallBubble(chosenRecovery, 120);
@@ -138,7 +135,6 @@ class Ball {
     const boxX = this.x - boxWidth / 2;
     const boxY = this.y - 34;
 
-    // Speech bubble background
     ctx.fillStyle = 'rgba(15, 23, 42, 0.94)';
     ctx.strokeStyle = '#38bdf8';
     ctx.lineWidth = 1.2;
@@ -148,7 +144,6 @@ class Ball {
     ctx.fill();
     ctx.stroke();
 
-    // Downward pointer tip
     ctx.beginPath();
     ctx.moveTo(this.x - 4, boxY + boxHeight);
     ctx.lineTo(this.x + 4, boxY + boxHeight);
@@ -157,7 +152,6 @@ class Ball {
     ctx.fillStyle = '#38bdf8';
     ctx.fill();
 
-    // Bubble Text
     ctx.fillStyle = '#e2e8f0';
     ctx.fillText(this.bubbleText, this.x, boxY + 15);
 

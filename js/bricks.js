@@ -14,7 +14,6 @@ class BrickGrid {
     this.rowColors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4'];
     this.bricks = [];
 
-    // Brick Complaints Pool
     this.complaintsPool = [
       "Can you stop?",
       "I was literally minding my business.",
@@ -73,13 +72,10 @@ class BrickGrid {
       brick.health = 1;
     }
 
-    // Trigger subtle shake on hit brick
     brick.shakeFrames = 7;
     brick.shakeIntensity = 2.5;
 
-    // Spawn localized complaint bubble
     this.triggerComplaint(brick);
-
     return previousHealth - brick.health;
   }
 
@@ -87,7 +83,6 @@ class BrickGrid {
     const text = customText || this.complaintsPool[Math.floor(Math.random() * this.complaintsPool.length)];
     this.lastComplaintTime = Date.now();
 
-    // Prevent screen clutter by pruning oldest speech bubble if limit reached
     if (this.activeBubbles.length >= this.maxConcurrentBubbles) {
       this.activeBubbles.shift();
     }
@@ -95,18 +90,16 @@ class BrickGrid {
     this.activeBubbles.push({
       brick: brick,
       text: text,
-      timer: 110, // ~1.8 seconds at 60 FPS
+      timer: 110,
       totalLife: 110
     });
   }
 
-  // Comedic interaction helper: returns elapsed ms since last brick hit
   getTimeSinceLastComplaint() {
     return Date.now() - this.lastComplaintTime;
   }
 
   triggerComedyResponse(text) {
-    // Find any damaged brick to voice the reply
     let candidate = null;
     for (let r = 0; r < this.rowCount; r++) {
       for (let c = 0; c < this.columnCount; c++) {
@@ -117,12 +110,11 @@ class BrickGrid {
       }
       if (candidate) break;
     }
-    if (!candidate) candidate = this.bricks[0][4]; // Center fallback
+    if (!candidate) candidate = this.bricks[0][4];
     this.triggerComplaint(candidate, text);
   }
 
   update() {
-    // Update individual brick shakes
     for (let r = 0; r < this.rowCount; r++) {
       for (let c = 0; c < this.columnCount; c++) {
         const b = this.bricks[r][c];
@@ -132,7 +124,6 @@ class BrickGrid {
       }
     }
 
-    // Update speech bubbles
     for (let i = this.activeBubbles.length - 1; i >= 0; i--) {
       const bubble = this.activeBubbles[i];
       bubble.timer--;
@@ -156,7 +147,6 @@ class BrickGrid {
   renderBrick(ctx, b) {
     ctx.save();
 
-    // Subtle micro-shake translation
     let drawX = b.x;
     let drawY = b.y;
     if (b.shakeFrames > 0) {
@@ -168,7 +158,7 @@ class BrickGrid {
     ctx.strokeStyle = '#070a12';
     ctx.lineWidth = 1.5;
 
-    // Stage 5: Nearly destroyed, tiny persistent fragments
+    // Stage 5
     if (b.health <= 19) {
       ctx.globalAlpha = 0.85;
 
@@ -201,7 +191,7 @@ class BrickGrid {
       return;
     }
 
-    // Stage 4: Heavy damage with missing corners
+    // Stage 4
     if (b.health <= 39) {
       ctx.beginPath();
       ctx.moveTo(drawX + 12, drawY);
@@ -231,7 +221,7 @@ class BrickGrid {
     ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
     ctx.fillRect(drawX, drawY, b.width, 3);
 
-    // Stage 2: Small crack
+    // Stage 2
     if (b.health <= 79) {
       ctx.strokeStyle = '#0f172a';
       ctx.beginPath();
@@ -241,7 +231,7 @@ class BrickGrid {
       ctx.stroke();
     }
 
-    // Stage 3: Branching cracks
+    // Stage 3
     if (b.health <= 59) {
       ctx.strokeStyle = '#0f172a';
       ctx.beginPath();
@@ -261,7 +251,6 @@ class BrickGrid {
       const b = bubble.brick;
       ctx.save();
 
-      // Fade-out animation in the last 20 frames
       let alpha = 1;
       if (bubble.timer < 20) {
         alpha = bubble.timer / 20;
@@ -278,7 +267,6 @@ class BrickGrid {
       const bubbleY = b.y - bubbleH - 7;
       const bubbleX = Math.max(8, Math.min(this.canvasWidth - bubbleW - 8, centerX - bubbleW / 2));
 
-      // Bubble background
       ctx.fillStyle = 'rgba(15, 23, 42, 0.95)';
       ctx.strokeStyle = '#f87171';
       ctx.lineWidth = 1;
@@ -288,7 +276,6 @@ class BrickGrid {
       ctx.fill();
       ctx.stroke();
 
-      // Tail
       ctx.beginPath();
       ctx.moveTo(centerX - 3, bubbleY + bubbleH);
       ctx.lineTo(centerX + 3, bubbleY + bubbleH);
@@ -297,7 +284,6 @@ class BrickGrid {
       ctx.fillStyle = '#f87171';
       ctx.fill();
 
-      // Text
       ctx.fillStyle = '#fef2f2';
       ctx.fillText(bubble.text, bubbleX + bubbleW / 2, bubbleY + 12.5);
 
