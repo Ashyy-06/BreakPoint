@@ -184,8 +184,8 @@ https://drive.google.com/drive/folders/1F1zt8-_FYvgrGEDyQtPHR7loKPiQV_l-
 
 # Additional Demos
 
-* GitHub Repository: [Add Repository Link]
-* Live Demo: [Add GitHub Pages Link]
+* GitHub Repository:(https://github.com/Ashyy-06/BreakPoint.git)
+* Live Demo: https://ashyy-06.github.io/BreakPoint/
 
 ---
 
